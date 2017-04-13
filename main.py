@@ -109,6 +109,12 @@ def setup_vector(input_line):
     return tuple(ret)
 
 
+def display_confusion_matrix(to_show):
+    print("Confusion Matrix")
+    for row in c_matrix(to_show):
+        print(row)
+    print()
+
 if __name__ == "__main__":
     # Read in file and setup data
     training_data = data_preprocessor(BASE_FILES['training'])
@@ -121,8 +127,8 @@ if __name__ == "__main__":
         for x in range(10):
             PERCEPTRONS[x].setup(rate)
         # display base confusion matrix and Calculate base accuracy for epoch 0
-        for row in c_matrix(testing_data):
-            print(row, '\n')
+        display_confusion_matrix(testing_data)
+        print("Epoch, Testing Accuracy, Training Accuracy")
         print('0,', check_accuracy(testing_data), ',', check_accuracy(training_data))
         # Train for the given number of epochs
         for epoch in range(START, STOP):
@@ -133,6 +139,5 @@ if __name__ == "__main__":
             # Display the accuracy based on the testing data after the epoch has run
             print(epoch, ',', check_accuracy(testing_data), ',', check_accuracy(training_data))
         # Display the confusion matrix after training on the given number of epochs
-        for row in c_matrix(testing_data):
-            print(row)
+        display_confusion_matrix(testing_data)
         print('\n')
