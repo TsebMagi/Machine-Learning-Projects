@@ -1,27 +1,29 @@
 # Doug Whitley
 # PSU Machine Learning Spring 17
-# Homework 1
+# Homework 2
 
 # Imports
-import random
 import numpy as np
-import scipy.special.expit
 
 # Constants
 INPUT_NUMBER = 784
 
 
-class HiddenLayerNode:
+def sigmoid(x):
+    return 1 / (1 + np.exp(-x))
+
+
+class Perceptron:
     def __init__(self):
         self.weights = None
         self.output = 0
         self.last_delta = 0
 
-    def setup(self, momentum):
-        self.weights = 2 * np.random.rand(INPUT_NUMBER) - 1
+    def setup(self, num_weights):
+        self.weights = 2 * np.random.rand(num_weights) - 1
 
     def receive_input(self, inputs):
-        output = np.dot(inputs, self.weights)
+        output = sigmoid(np.dot(inputs, self.weights))
         return output
 
     def update_weights(self, learning_rate, momentum, error):
@@ -29,14 +31,29 @@ class HiddenLayerNode:
         self.weights = self.weights + self.last_delta
 
 
-# Perceptron Class
-class Perceptron:
+class PerceptronCluster:
+
     def __init__(self):
-        self.weights = None
-        self.target = 0
+        self.output_layer = None
+        self.hidden_layer = None
+        self.learning_rate = 0
         self.momentum = 0
 
-    def setup(self, momentum, num_hidden, target):
-        self.weights = 2 * np.random.rand(num_hidden) - 1
-        self.target = target
+    def setup(self, num_outputs, num_hidden, momentum, learning_rate):
+        self.output_layer = np.array(num_outputs, Perceptron)
+        for p in self.output_layer:
+            p.setup(num_hidden)
+        self.hidden_layer = np.array(num_hidden, Perceptron)
+        for p in self.hidden_layer:
+            p.setup(INPUT_NUMBER)
+        self.learning_rate = learning_rate
         self.momentum = momentum
+
+    def run_test_epoch(self, inputs):
+        pass
+
+    def run_training(self, inputs):
+        pass
+
+    def c_matrix(self):
+        pass
