@@ -1,8 +1,9 @@
 # Doug Whitley
 # PSU Machine Learning Spring 17
-# Homework 1
+# Homework 2
 
 # Imports
+import pandas as pd
 import Perceptron
 import numpy as np
 
