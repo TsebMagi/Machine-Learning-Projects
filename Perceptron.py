@@ -23,7 +23,7 @@ class Perceptron:
         self.weights = 2 * np.random.rand(num_weights) - 1
 
     def receive_input(self, inputs):
-        output = sigmoid(np.dot(inputs, self.weights))
+        output = sigmoid(np.dot(inputs, self.weights[1:])) + self.weights[0]
         return output
 
     def update_weights(self, learning_rate, momentum, error):
@@ -49,11 +49,34 @@ class PerceptronCluster:
         self.learning_rate = learning_rate
         self.momentum = momentum
 
-    def run_test_epoch(self, inputs):
+    def run_training(self, data, target):
+        # Present data to hidden layer
+        hidden_results = np.array([x.receive_input(data) for x in self.hidden_layer])
+        # Present hidden results to output
+        output = [x.receive_input(hidden_results) for x in self.output_layer]
+        # calculate output errors
+        output_errors = np.array(
+            [x * (1 - x) * (0.9 - x) if output.index(x) == target else x * (1 - x) * (0.2 - x) for x in output])
+        # update output to hidden layer
+        
+        # calculate input to hidden error
+        # update input to hidden  weights
         pass
 
-    def run_training(self, inputs):
+    def run_test(self, data):
+        # Present Input to Hidden layer
+        # Present result to Output
         pass
+
+    def run_test_epoch(self, inputs, matrix):
+
+        # Calculate Output
+        # Update matrix
+        pass
+
+    def run_training_epoch(self, inputs):
+        for input in inputs:
+            self.run_training(input[1:], input[0])
 
     def c_matrix(self):
         pass
