@@ -3,7 +3,6 @@
 # Homework 2
 
 # Imports
-import pandas as pd
 import Perceptron
 import numpy as np
 
@@ -16,7 +15,6 @@ START = 1
 STOP = 50
 
 # Reads input from file and returns a numpy Array representation of the file
-
 
 # Returns a float representation of a comma separated line of values
 
@@ -44,16 +42,30 @@ if __name__ == "__main__":
         p_cluster.run_epoch(testing_data, False, True)
         print(p_cluster.confusion_matrix)
 
+    print("Experiment 2: Varying Momentum")
+    for momentum in [0, 0.25, 0.5]:
+        print("=====", momentum, "=====")
+        p_cluster = Perceptron.PerceptronCluster()
+        p_cluster.setup(100, momentum, 0.1)
+
+        for x in range(STOP):
+            training_accuracy = p_cluster.run_epoch(training_data, True, False)
+            testing_accuracy = p_cluster.run_epoch(testing_data, False, False)
+            print(x, training_accuracy, testing_accuracy)
+
+        p_cluster.run_epoch(testing_data, False, True)
+        print(p_cluster.confusion_matrix)
+
     print("Experiment 3: Partial Data")
-    p_cluster_half = Perceptron.PerceptronCluster()
-    p_cluster_half.setup(100, 0.9, 0.1)
-    p_cluster_quarter = Perceptron.PerceptronCluster()
-    p_cluster_quarter.setup(100, 0.9, 0.1)
+    for step in [2, 4]:
+        print("=====", step, "=====")
+        p_cluster = Perceptron.PerceptronCluster()
+        p_cluster.setup(100, 0.9, 0.1)
 
-    for x in range(STOP):
-        training_accuracy = p_cluster.run_epoch(training_data, True, False)
-        testing_accuracy = p_cluster.run_epoch(testing_data, False, False)
-        print(x, training_accuracy, testing_accuracy)
+        for x in range(STOP, step=step):
+            training_accuracy = p_cluster.run_epoch(training_data, True, False)
+            testing_accuracy = p_cluster.run_epoch(testing_data, False, False)
+            print(x, training_accuracy, testing_accuracy)
 
-    p_cluster.run_epoch(testing_data, False, True)
-    print(p_cluster.confusion_matrix)
+        p_cluster.run_epoch(testing_data, False, True)
+        print(p_cluster.confusion_matrix)
