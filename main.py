@@ -29,10 +29,31 @@ if __name__ == "__main__":
     for x in testing_data:
         x[1:] /= 255
 
-    # Setup cluster
-    p_cluster = Perceptron.PerceptronCluster()
-    p_cluster.setup(20, 0.9, 0.1)
+    # Run experiment 1
+    print("Experiment 1: Varying Hidden Units")
+    for rate in [20, 50, 100]:
+        print("=====", rate, "=====")
+        p_cluster = Perceptron.PerceptronCluster()
+        p_cluster.setup(rate, 0.9, 0.1)
+
+        for x in range(STOP):
+            training_accuracy = p_cluster.run_epoch(training_data, True, False)
+            testing_accuracy = p_cluster.run_epoch(testing_data, False, False)
+            print(x, training_accuracy, testing_accuracy)
+
+        p_cluster.run_epoch(testing_data, False, True)
+        print(p_cluster.confusion_matrix)
+
+    print("Experiment 3: Partial Data")
+    p_cluster_half = Perceptron.PerceptronCluster()
+    p_cluster_half.setup(100, 0.9, 0.1)
+    p_cluster_quarter = Perceptron.PerceptronCluster()
+    p_cluster_quarter.setup(100, 0.9, 0.1)
 
     for x in range(STOP):
-        # print(p_cluster.run_test_epoch(testing_data,False))
-        print(p_cluster.run_epoch(training_data, True, False))
+        training_accuracy = p_cluster.run_epoch(training_data, True, False)
+        testing_accuracy = p_cluster.run_epoch(testing_data, False, False)
+        print(x, training_accuracy, testing_accuracy)
+
+    p_cluster.run_epoch(testing_data, False, True)
+    print(p_cluster.confusion_matrix)
