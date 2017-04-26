@@ -3,41 +3,48 @@
 # Homework 2
 
 # Imports
-import Perceptron
+import Cluster
 import numpy as np
+import pandas as pd
 
 # Project file inputs
 BASE_FILES = {'training': "mnist_train.csv", 'testing': "mnist_test.csv"}
 # Project constants
 RATES = (0.1, 0.01, 0.001)
 # Epoch Numbers
-START = 1
 STOP = 50
-
-# Reads input from file and returns a numpy Array representation of the file
-
-# Returns a float representation of a comma separated line of values
 
 if __name__ == "__main__":
     # Read in file and setup data
-    training_data = np.genfromtxt(BASE_FILES['training'], delimiter=',')
-    testing_data = np.genfromtxt(BASE_FILES['testing'], delimiter=',')
+    training_data = pd.read_csv(BASE_FILES['training'], sep=',', engine='c', header=None, na_filter=False,
+                                dtype=np.float64,
+                                low_memory=False).as_matrix()
+
+    testing_data = pd.read_csv(BASE_FILES['testing'], sep=',', engine='c', header=None, na_filter=False,
+                               dtype=np.float64,
+                               low_memory=False).as_matrix()
+
+    # Scale Inputs
     for x in training_data:
         x[1:] /= 255
     for x in testing_data:
         x[1:] /= 255
 
-    # Run experiment 1
+    # Insert Bias
+    training_data = np.insert(training_data, 1, [1], axis=1)
+    testing_data = np.insert(testing_data, 1, [1], axis=1)
+
+    # Run Experiment 1
     print("Experiment 1: Varying Hidden Units")
-    for rate in [20, 50, 100]:
-        print("=====", rate, "=====")
-        p_cluster = Perceptron.PerceptronCluster()
-        p_cluster.setup(rate, 0.9, 0.1)
+    for num in [20, 50, 100]:
+        print("=====", num, "=====")
+        p_cluster = Cluster.NeuralNetwork(num, 10, 0.9, 0.1)
 
         for x in range(STOP):
-            training_accuracy = p_cluster.run_epoch(training_data, True, False)
+            # Calculate Test and Training on repeat
             testing_accuracy = p_cluster.run_epoch(testing_data, False, False)
-            print(x, training_accuracy, testing_accuracy)
+            training_accuracy = p_cluster.run_epoch(training_data, True, False)
+            print(x, ',', training_accuracy, ',', testing_accuracy)
 
         p_cluster.run_epoch(testing_data, False, True)
         print(p_cluster.confusion_matrix)
@@ -45,13 +52,13 @@ if __name__ == "__main__":
     print("Experiment 2: Varying Momentum")
     for momentum in [0, 0.25, 0.5]:
         print("=====", momentum, "=====")
-        p_cluster = Perceptron.PerceptronCluster()
-        p_cluster.setup(100, momentum, 0.1)
+        p_cluster = Cluster.NeuralNetwork(100, 10, momentum, 0.1)
 
         for x in range(STOP):
-            training_accuracy = p_cluster.run_epoch(training_data, True, False)
+            # Calculate Test and Training on repeat
             testing_accuracy = p_cluster.run_epoch(testing_data, False, False)
-            print(x, training_accuracy, testing_accuracy)
+            training_accuracy = p_cluster.run_epoch(training_data, True, False)
+            print(x, ',', training_accuracy, ',', testing_accuracy)
 
         p_cluster.run_epoch(testing_data, False, True)
         print(p_cluster.confusion_matrix)
@@ -59,13 +66,13 @@ if __name__ == "__main__":
     print("Experiment 3: Partial Data")
     for step in [2, 4]:
         print("=====", step, "=====")
-        p_cluster = Perceptron.PerceptronCluster()
-        p_cluster.setup(100, 0.9, 0.1)
-
-        for x in range(STOP, step=step):
-            training_accuracy = p_cluster.run_epoch(training_data, True, False)
+        p_cluster = Cluster.NeuralNetwork(100, 10, 0.9, 0.1)
+        partial_training_data = np.array(training_data[::step])
+        for x in range(STOP):
+            # Calculate Test and Training on repeat
             testing_accuracy = p_cluster.run_epoch(testing_data, False, False)
-            print(x, training_accuracy, testing_accuracy)
+            training_accuracy = p_cluster.run_epoch(partial_training_data, True, False)
+            print(x, ',', training_accuracy, ',', testing_accuracy)
 
         p_cluster.run_epoch(testing_data, False, True)
         print(p_cluster.confusion_matrix)
