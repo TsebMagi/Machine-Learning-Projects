@@ -9,32 +9,34 @@ def sigmoid(x):
 
 class NeuralNetwork:
     def __init__(self, num_hidden, num_output, momentum, learning_rate):
+
         # Setup information tracking
+        self.confusion_matrix = np.zeros((10, 10), int)
         self.targets = np.zeros((10, 10), float)
         self.targets.fill(0.1)
         for x in range(10):
             self.targets[x, x] = 0.9
+        # Number of Nodes at each level
         self.num_hidden = num_hidden
         self.num_output = num_output
-        self.confusion_matrix = np.zeros((10, 10), int)
-
+        # Number of Weights for each level
         self.num_hidden_weights = NUM_RAW_INPUT + 1
         self.num_output_weights = num_hidden + 1
-
+        # Cluster's hyper parameters
         self.momentum = momentum
         self.learning_rate = learning_rate
-
+        # Container for the Hidden Nodes Output
         self.output_layer_input = np.zeros(num_hidden + 1)
-
+        # Setup the Weights for each Layer
         self.hidden_layer = ((np.random.rand(num_hidden, self.num_hidden_weights) / 10) - 0.05)
         self.output_layer = ((np.random.rand(num_output, self.num_output_weights) / 10) - 0.05)
-
+        # Container for the Outputs
         self.hidden_layer_output = np.zeros(num_hidden)
         self.output_layer_output = np.zeros(num_output)
-
+        # Container for the Errors
         self.hidden_layer_errors = np.zeros(num_hidden)
         self.output_layer_errors = np.zeros(num_output)
-
+        # Container for the last set of weight changes
         self.hidden_layer_last_delta = np.zeros((self.num_hidden, self.num_hidden_weights))
         self.output_layer_last_delta = np.zeros((self.num_output, self.num_output_weights))
 
@@ -59,7 +61,7 @@ class NeuralNetwork:
     def train(self, target, data):
 
         self.output_layer_errors = (self.output_layer_output * (1 - self.output_layer_output) *
-                                    (self.targets[target] - self.output_layer_output))
+                                    (self.targets[int(target)] - self.output_layer_output))
 
         sum_of_weights_to_out = self.output_layer.transpose() @ self.output_layer_errors
         self.hidden_layer_errors = (self.hidden_layer_output * (1 - self.hidden_layer_output) *
