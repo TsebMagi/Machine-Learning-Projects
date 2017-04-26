@@ -5,6 +5,7 @@
 # Imports
 import Cluster
 import numpy as np
+import pandas as pd
 
 # Project file inputs
 BASE_FILES = {'training': "mnist_train.csv", 'testing': "mnist_test.csv"}
@@ -15,8 +16,13 @@ STOP = 50
 
 if __name__ == "__main__":
     # Read in file and setup data
-    training_data = np.genfromtxt(BASE_FILES['training'], delimiter=',')
-    testing_data = np.genfromtxt(BASE_FILES['testing'], delimiter=',')
+    training_data = pd.read_csv(BASE_FILES['training'], sep=',', engine='c', header=None, na_filter=False,
+                                dtype=np.float64,
+                                low_memory=False).as_matrix()
+
+    testing_data = pd.read_csv(BASE_FILES['testing'], sep=',', engine='c', header=None, na_filter=False,
+                               dtype=np.float64,
+                               low_memory=False).as_matrix()
 
     # Scale Inputs
     for x in training_data:
@@ -61,11 +67,11 @@ if __name__ == "__main__":
     for step in [2, 4]:
         print("=====", step, "=====")
         p_cluster = Cluster.NeuralNetwork(100, 10, 0.9, 0.1)
-
-        for x in range(STOP, step=step):
+        partial_training_data = np.array(training_data[::step])
+        for x in range(STOP):
             # Calculate Test and Training on repeat
             testing_accuracy = p_cluster.run_epoch(testing_data, False, False)
-            training_accuracy = p_cluster.run_epoch(training_data, True, False)
+            training_accuracy = p_cluster.run_epoch(partial_training_data, True, False)
             print(x, ',', training_accuracy, ',', testing_accuracy)
 
         p_cluster.run_epoch(testing_data, False, True)
