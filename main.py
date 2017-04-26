@@ -3,7 +3,7 @@
 # Homework 2
 
 # Imports
-import Perceptron
+import Cluster
 import numpy as np
 
 # Project file inputs
@@ -29,14 +29,13 @@ if __name__ == "__main__":
 
     # Run experiment 1
     print("Experiment 1: Varying Hidden Units")
-    for rate in [20, 50, 100]:
-        print("=====", rate, "=====")
-        p_cluster = Perceptron.PerceptronCluster()
-        p_cluster.setup(rate, 0.9, 0.1)
+    for num in [20, 50, 100]:
+        print("=====", num, "=====")
+        p_cluster = Cluster.NeuralNetwork(num, 10, 0.9, 0.1)
 
         for x in range(STOP):
-            training_accuracy = p_cluster.run_epoch(training_data, True, False)
             testing_accuracy = p_cluster.run_epoch(testing_data, False, False)
+            training_accuracy = p_cluster.run_epoch(training_data, True, False)
             print(x, training_accuracy, testing_accuracy)
 
         p_cluster.run_epoch(testing_data, False, True)
@@ -45,12 +44,11 @@ if __name__ == "__main__":
     print("Experiment 2: Varying Momentum")
     for momentum in [0, 0.25, 0.5]:
         print("=====", momentum, "=====")
-        p_cluster = Perceptron.PerceptronCluster()
-        p_cluster.setup(100, momentum, 0.1)
+        p_cluster = Cluster.NeuralNetwork(100, 10, momentum, 0.1)
 
         for x in range(STOP):
-            training_accuracy = p_cluster.run_epoch(training_data, True, False)
             testing_accuracy = p_cluster.run_epoch(testing_data, False, False)
+            training_accuracy = p_cluster.run_epoch(training_data, True, False)
             print(x, training_accuracy, testing_accuracy)
 
         p_cluster.run_epoch(testing_data, False, True)
@@ -59,12 +57,11 @@ if __name__ == "__main__":
     print("Experiment 3: Partial Data")
     for step in [2, 4]:
         print("=====", step, "=====")
-        p_cluster = Perceptron.PerceptronCluster()
-        p_cluster.setup(100, 0.9, 0.1)
+        p_cluster = Cluster.NeuralNetwork(100, 10, 0.9, 0.1)
 
         for x in range(STOP, step=step):
-            training_accuracy = p_cluster.run_epoch(training_data, True, False)
             testing_accuracy = p_cluster.run_epoch(testing_data, False, False)
+            training_accuracy = p_cluster.run_epoch(training_data, True, False)
             print(x, training_accuracy, testing_accuracy)
 
         p_cluster.run_epoch(testing_data, False, True)
