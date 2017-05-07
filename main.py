@@ -1,78 +1,58 @@
-# Doug Whitley
-# PSU Machine Learning Spring 17
-# Homework 2
-
-# Imports
-import Cluster
-import numpy as np
 import pandas as pd
+import random
+import sklearn.model_selection
+import sklearn.svm
+import sklearn.preprocessing
 
-# Project file inputs
-BASE_FILES = {'training': "mnist_train.csv", 'testing': "mnist_test.csv"}
-# Project constants
-RATES = (0.1, 0.01, 0.001)
-# Epoch Numbers
-STOP = 50
+
+def run_experiment1():
+    print("Experiment 1", '\n')
+    predictions = classifier.predict(x_test)
+    probabilities = classifier.predict_proba(x_test)
+    acc = classifier.score(x_test, y_test)
+    precision = sklearn.metrics.precision_score(y_test, predictions)
+    recall = sklearn.metrics.recall_score(y_test, predictions)
+    print("Accuracy", acc)
+    print("Precision", precision)
+    print("Recall", recall)
+    fpr, tpr, thresholds = sklearn.metrics.roc_curve(y_test, probabilities[:, 1], drop_intermediate=True)
+    for x in range(len(thresholds)):
+        print(fpr[x], ',', tpr[x])
+
+
+def run_experiment2():
+    print("Experiment 2", '\n')
+    arr = classifier.coef_
+    arr = arr.argsort()[-57:][::-1]
+    for x in range(2, 57):
+        classifier2 = sklearn.svm.SVC(kernel='linear')
+        classifier2.fit(x_train.iloc[:, arr[0, :x]], y_train)
+        sorted_acc = classifier2.score(x_test.iloc[:, arr[0, :x]], y_test)
+        print(x, ',', sorted_acc)
+
+
+def run_experiment3():
+    print("Experiment 3", '\n')
+    arr = [random.randint(0, 56) for _ in range(57)]
+    for x in range(2, 57):
+        classifier3 = sklearn.svm.SVC(kernel='linear')
+        classifier3.fit(x_train.iloc[:, arr[:x]], y_train)
+        sorted_acc = classifier3.score(x_test.iloc[:, arr[:x]], y_test)
+        print(x, ',', sorted_acc)
+
 
 if __name__ == "__main__":
-    # Read in file and setup data
-    training_data = pd.read_csv(BASE_FILES['training'], sep=',', engine='c', header=None, na_filter=False,
-                                dtype=np.float64,
-                                low_memory=False).as_matrix()
+    data = pd.read_csv("spambase.data", header=None, index_col=57)
+    x_train, x_test, y_train, y_test = sklearn.model_selection.train_test_split(data, data.index.values, test_size=0.5)
+    scaler = sklearn.preprocessing.StandardScaler().fit(x_train)
 
-    testing_data = pd.read_csv(BASE_FILES['testing'], sep=',', engine='c', header=None, na_filter=False,
-                               dtype=np.float64,
-                               low_memory=False).as_matrix()
+    # Transform the training data based on that scaler and set the index values accordingly
+    x_train = pd.DataFrame(scaler.transform(x_train), index=y_train)
 
-    # Scale Inputs
-    for x in training_data:
-        x[1:] /= 255
-    for x in testing_data:
-        x[1:] /= 255
-
-    # Insert Bias
-    training_data = np.insert(training_data, 1, [1], axis=1)
-    testing_data = np.insert(testing_data, 1, [1], axis=1)
-
-    # Run Experiment 1
-    print("Experiment 1: Varying Hidden Units")
-    for num in [20, 50, 100]:
-        print("=====", num, "=====")
-        p_cluster = Cluster.NeuralNetwork(num, 10, 0.9, 0.1)
-
-        for x in range(STOP):
-            # Calculate Test and Training on repeat
-            testing_accuracy = p_cluster.run_epoch(testing_data, False, False)
-            training_accuracy = p_cluster.run_epoch(training_data, True, False)
-            print(x, ',', training_accuracy, ',', testing_accuracy)
-
-        p_cluster.run_epoch(testing_data, False, True)
-        print(p_cluster.confusion_matrix)
-
-    print("Experiment 2: Varying Momentum")
-    for momentum in [0, 0.25, 0.5]:
-        print("=====", momentum, "=====")
-        p_cluster = Cluster.NeuralNetwork(100, 10, momentum, 0.1)
-
-        for x in range(STOP):
-            # Calculate Test and Training on repeat
-            testing_accuracy = p_cluster.run_epoch(testing_data, False, False)
-            training_accuracy = p_cluster.run_epoch(training_data, True, False)
-            print(x, ',', training_accuracy, ',', testing_accuracy)
-
-        p_cluster.run_epoch(testing_data, False, True)
-        print(p_cluster.confusion_matrix)
-
-    print("Experiment 3: Partial Data")
-    for step in [2, 4]:
-        print("=====", step, "=====")
-        p_cluster = Cluster.NeuralNetwork(100, 10, 0.9, 0.1)
-        partial_training_data = np.array(training_data[::step])
-        for x in range(STOP):
-            # Calculate Test and Training on repeat
-            testing_accuracy = p_cluster.run_epoch(testing_data, False, False)
-            training_accuracy = p_cluster.run_epoch(partial_training_data, True, False)
-            print(x, ',', training_accuracy, ',', testing_accuracy)
-
-        p_cluster.run_epoch(testing_data, False, True)
-        print(p_cluster.confusion_matrix)
+    # Transform the testing data based on that same scaler and set the index values accordingly
+    x_test = pd.DataFrame(scaler.transform(x_test), index=y_test)
+    classifier = sklearn.svm.SVC(kernel='linear', probability=True)
+    classifier.fit(x_train, y_train)
+    run_experiment1()
+    run_experiment2()
+    run_experiment3()
