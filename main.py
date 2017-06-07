@@ -1,6 +1,8 @@
 import numpy as np
-import logging
 from enum import IntEnum
+
+CONST_DISCOUNT = 0.9
+CONST_ACTIONS = 200
 
 
 class Rewards(IntEnum):
@@ -38,6 +40,7 @@ def create_states():
 
 
 def create_board():
+    # Creates a 12 x 12 board with 1's along the exterior and fills it with a random number of cans
     ret = np.zeros((12, 12), dtype='int')
     ret[0, 0] = ret[-1, -1] = ret[-1, 0] = ret[0, -1] = 1
     ret[0, 1:-1] += 1
@@ -52,7 +55,7 @@ def create_board():
     return ret
 
 
-def check_sensors(x_pos, y_pos):
+def check_sensors(x_pos, y_pos, board):
     here = board[x_pos, y_pos]
     north = board[x_pos - 1, y_pos]
     south = board[x_pos + 1, y_pos]
@@ -61,10 +64,12 @@ def check_sensors(x_pos, y_pos):
     return tuple((here, north, south, east, west))
 
 
-def take_action(action, c_x, c_y, surroundings):
+def take_action(action, c_x, c_y, surroundings, tax, hidden_treasure, board):
+    # setup local vars for ease of use
     reward = 0
     new_x = c_x
     new_y = c_y
+    # Action Cases with their possible result calculations
     if action == Actions.MOVE_NORTH:
         if surroundings[Directions.NORTH] != BoardItems.WALL:
             new_x -= 1
@@ -93,69 +98,109 @@ def take_action(action, c_x, c_y, surroundings):
             reward = Rewards.PICK_UP_EMPTY
     else:
         print("INVALID ACTION NUMBER: ", action)
-    return reward, new_x, new_y
+    # Check for hidden treasure
+    if reward < 0 and hidden_treasure is True:
+        find = np.random.rand()
+        if find > 0.995:
+            reward *= -100
+    # calculate resulting reward and position
+    return reward - tax, new_x, new_y
 
 
-def robby_loop(num_steps, greedy_term, learning_rate, discount):
+def robby_loop(states, num_steps, greedy_term, learning_rate, tax, hidden_treasure):
+    # Setup random starting point for episode
     x = np.random.randint(1, 10)
     y = np.random.randint(1, 10)
+    # set rewards to 0
     rewards = 0
+    # create random board for episode
+    board = create_board()
+    # setup probability of random action
     good_action = 1 - greedy_term
-
+    # run episode
     for _ in range(num_steps):
-        scanner_input = check_sensors(x, y)
+        # check for state
+        scanner_input = check_sensors(x, y, board)
+        # find current state in stat list
         current_state_pair = None
         for s in states:
             if s[0] == scanner_input:
                 current_state_pair = s
         if current_state_pair is None:
             print("Error Current State Not Found")
+        # Calculate random or good action
         greedy = np.random.rand()
         if greedy > good_action:
             # Take random action
             action = np.random.randint(5)
-            # print("Random")
         else:
             # Take Good Action
-            # print("Good!")
             action = np.argmax(current_state_pair[1])
-        action_reward, x, y = take_action(action, x, y, scanner_input)
+        # Calculate result of action
+        action_reward, x, y = take_action(action, x, y, scanner_input, tax, hidden_treasure, board)
         rewards += action_reward
-        # update Q for state st
-        new_state = check_sensors(x, y)
+        # find new state
+        new_state = check_sensors(x, y, board)
         new_state_pair = None
         for s in states:
             if s[0] == new_state:
                 new_state_pair = s
         if new_state_pair is None:
             print("Error New State Not Found")
-        (current_state_pair[1])[action] += learning_rate * (action_reward + discount * (np.argmax(new_state_pair[1])
-                                                                                        - (current_state_pair[1])[
-                                                                                            action]))
+        # update Q for state
+        (current_state_pair[1])[action] += learning_rate * (action_reward + (CONST_DISCOUNT *
+                                                                             (np.argmax(new_state_pair[1])
+                                                                              - (current_state_pair[1])[action])))
     return rewards
 
 
+def train_and_test(learning_rates, epsilon_value, tax, treasure, const_ep):
+    # Iterate across the learning rates passed in
+    for rate in learning_rates:
+        # Setup a clean set of states
+        states = create_states()
+        # Reset Rewards
+        train_rewards = 0
+        # Reset to the initial Epsilon, in case we need to run multiple rates
+        epsilon = epsilon_value
+        print("----------training----------")
+        print("Rate: ", rate)
+        # Iterate across the epochs
+        for epoch in range(1, 5001):
+            # On the appropriate epochs reduce the epislon term
+            if epoch % 50 == 0 and epsilon > 0.1 and const_ep is False:
+                epsilon -= 0.01
+            # Calculate the rewards for the episode
+            train_rewards += robby_loop(states, CONST_ACTIONS, epsilon, rate, tax, treasure)
+            # Produce plot point at appropriate intervals
+            if epoch % 100 == 0:
+                print(epoch, ",", train_rewards)
+        # Run the Testing side
+        print("----------testing----------")
+        print("Rate: ", rate)
+        # Array of episode results
+        values = np.zeros(5000)
+        # Fill array of episode results
+        for epoch in range(5000):
+            values[epoch] = robby_loop(states, CONST_ACTIONS, 0, rate, tax, treasure)
+        # Calculate relevant stats based on results
+        print("Average: ", np.average(values))
+        print("Standard Deviation: ", np.std(values))
+
+
 if __name__ == "__main__":
-    log = logging.getLogger(__name__)
-    states = create_states()
-    print("Experiment 1")
-    epsilon = 1
-    learning = 0.2
-    disc = 0.9
-    train_rewards = 0
-    print("----------training----------")
-    for epoch in range(1, 5001):
-        board = create_board()
-        if epoch % 50 == 0 and epsilon > 0.1:
-            epsilon -= 0.01
-        train_rewards += robby_loop(200, epsilon, learning, disc)
-        if epoch % 100 == 0:
-            print(epoch, ",", train_rewards)
-    test_rewards = 0
-    print("----------testing----------")
-    values = np.zeros(5000)
-    for epoch in range(5000):
-        board = create_board()
-        values[epoch] = robby_loop(200, 0, learning, disc)
-    print("Average: ", np.average(values))
-    print("Standard Deviation: ", np.std(values))
+    # Run the experiments
+    print("-----Experiment 1-----")
+    train_and_test(learning_rates=[0.2], epsilon_value=1.0, tax=0, treasure=False, const_ep=False)
+
+    print("-----Experiment 2-----")
+    train_and_test(learning_rates=[0.0001, 0.333, 0.666, 1.0], epsilon_value=1.0, tax=0, treasure=False, const_ep=False)
+
+    print("-----Experiment 3-----")
+    train_and_test(learning_rates=[0.2], epsilon_value=0.33, tax=0, treasure=False, const_ep=True)
+
+    print("-----Experiment 4-----")
+    train_and_test(learning_rates=[0.2], epsilon_value=1.0, tax=0.5, treasure=False, const_ep=False)
+
+    print("-----Experiment 5-----")
+    train_and_test(learning_rates=[0.2], epsilon_value=1.0, tax=0, treasure=True, const_ep=False)
