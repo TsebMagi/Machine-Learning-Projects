@@ -14,16 +14,16 @@ class Rewards(IntEnum):
 class Actions(IntEnum):
     PICK_UP = 0
     MOVE_NORTH = 1
-    MOVE_SOUTH = 2
-    MOVE_EAST = 3
+    MOVE_EAST = 2
+    MOVE_SOUTH = 3
     MOVE_WEST = 4
 
 
 class Directions(IntEnum):
     HERE = 0
     NORTH = 1
-    SOUTH = 2
-    EAST = 3
+    EAST = 2
+    SOUTH = 3
     WEST = 4
 
 
@@ -34,7 +34,7 @@ class BoardItems(IntEnum):
 
 
 def create_states():
-    ret = [[(h, n, s, e, w), np.zeros(5)] for h in range(3) for n in range(3) for s in range(3) for e in range(3) for w
+    ret = [[(h, n, e, s, w), np.zeros(5)] for h in range(3) for n in range(3) for s in range(3) for e in range(3) for w
            in range(3)]
     return ret
 
@@ -47,8 +47,8 @@ def create_board():
     ret[-1, 1:-1] += 1
     ret[1:-1, 0] += 1
     ret[1:-1, -1] += 1
-    for x in range(1, 10):
-        for y in range(1, 10):
+    for x in range(1, 11):
+        for y in range(1, 11):
             can = np.random.randint(100)
             if can > 49:
                 ret[x, y] = 2
@@ -61,7 +61,7 @@ def check_sensors(x_pos, y_pos, board):
     south = board[x_pos + 1, y_pos]
     east = board[x_pos, y_pos + 1]
     west = board[x_pos - 1, y_pos - 1]
-    return tuple((here, north, south, east, west))
+    return tuple((here, north, east, south, west))
 
 
 def take_action(action, c_x, c_y, surroundings, tax, hidden_treasure, board):
@@ -107,10 +107,10 @@ def take_action(action, c_x, c_y, surroundings, tax, hidden_treasure, board):
     return reward - tax, new_x, new_y
 
 
-def robby_loop(states, num_steps, greedy_term, learning_rate, tax, hidden_treasure):
+def robby_loop(states, num_steps, greedy_term, learning_rate, tax, hidden_treasure, training):
     # Setup random starting point for episode
-    x = np.random.randint(1, 10)
-    y = np.random.randint(1, 10)
+    x = np.random.randint(1, 11)
+    y = np.random.randint(1, 11)
     # set rewards to 0
     rewards = 0
     # create random board for episode
@@ -135,7 +135,18 @@ def robby_loop(states, num_steps, greedy_term, learning_rate, tax, hidden_treasu
             action = np.random.randint(5)
         else:
             # Take Good Action
-            action = np.argmax(current_state_pair[1])
+            greatest = -99999
+            best_list = None
+            list_len = 0
+            for thing in enumerate(current_state_pair[1]):
+                if thing[1] > greatest:
+                    best_list = [thing[0]]
+                    greatest = thing[1]
+                    list_len = 1
+                if thing[1] == greatest:
+                    best_list.append(thing[0])
+                    list_len += 1
+            action = best_list[np.random.randint(list_len)]
         # Calculate result of action
         action_reward, x, y = take_action(action, x, y, scanner_input, tax, hidden_treasure, board)
         rewards += action_reward
@@ -147,10 +158,11 @@ def robby_loop(states, num_steps, greedy_term, learning_rate, tax, hidden_treasu
                 new_state_pair = s
         if new_state_pair is None:
             print("Error New State Not Found")
-        # update Q for state
-        (current_state_pair[1])[action] += learning_rate * (action_reward + (CONST_DISCOUNT *
-                                                                             (np.argmax(new_state_pair[1])
-                                                                              - (current_state_pair[1])[action])))
+        if training:
+            # update Q for state
+            (current_state_pair[1])[action] += \
+                (learning_rate * (action_reward + CONST_DISCOUNT * (np.amax(new_state_pair[1]))
+                                  - current_state_pair[1][action]))
     return rewards
 
 
@@ -167,11 +179,11 @@ def train_and_test(learning_rates, epsilon_value, tax, treasure, const_ep):
         print("Rate: ", rate)
         # Iterate across the epochs
         for epoch in range(1, 5001):
-            # On the appropriate epochs reduce the epislon term
+            # On the appropriate epochs reduce the epsilon term
             if epoch % 50 == 0 and epsilon > 0.1 and const_ep is False:
                 epsilon -= 0.01
             # Calculate the rewards for the episode
-            train_rewards += robby_loop(states, CONST_ACTIONS, epsilon, rate, tax, treasure)
+            train_rewards += robby_loop(states, CONST_ACTIONS, epsilon, rate, tax, treasure, True)
             # Produce plot point at appropriate intervals
             if epoch % 100 == 0:
                 print(epoch, ",", train_rewards)
@@ -181,8 +193,10 @@ def train_and_test(learning_rates, epsilon_value, tax, treasure, const_ep):
         # Array of episode results
         values = np.zeros(5000)
         # Fill array of episode results
+        test_rewards = 0
         for epoch in range(5000):
-            values[epoch] = robby_loop(states, CONST_ACTIONS, 0, rate, tax, treasure)
+            values[epoch] = robby_loop(states, CONST_ACTIONS, 0, rate, tax, treasure, False)
+            test_rewards += values[epoch]
         # Calculate relevant stats based on results
         print("Average: ", np.average(values))
         print("Standard Deviation: ", np.std(values))
